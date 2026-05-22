@@ -332,6 +332,29 @@
             reader.readAsText(file);
         }
 
+        function loadFileAuto() {
+            // Essaie de charger lol_stats.json automatiquement
+            fetch('lol_stats.json')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Fichier lol_stats.json non trouvé');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    allData = data;
+                    renderDashboard();
+                    showMessage('✓ Données chargées automatiquement!', 'success');
+                })
+                .catch(error => {
+                    console.log('Auto-load failed:', error);
+                    // Ne pas afficher d'erreur, laisser l'utilisateur charger manuellement
+                });
+        }
+
+        // Charge automatiquement au démarrage
+        window.addEventListener('load', loadFileAuto);
+
         function renderDashboard() {
             if (!allData || !allData.matches || allData.matches.length === 0) {
                 showMessage('Aucune donnée de match trouvée', 'error');
