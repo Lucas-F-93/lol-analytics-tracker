@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>League of Legends - Analytics Dashboard</title>
+    <title>LoL Analytics - Dashboard</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -16,41 +17,262 @@
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: linear-gradient(135deg, #0a1428 0%, #1a2a4e 100%);
             color: #fff;
-            padding: 20px;
             min-height: 100vh;
         }
 
         .container {
-            max-width: 1400px;
+            display: grid;
+            grid-template-columns: 250px 1fr;
+            gap: 20px;
+            padding: 20px;
+            max-width: 1600px;
             margin: 0 auto;
+        }
+
+        /* SIDEBAR */
+        .sidebar {
+            background: rgba(10, 159, 255, 0.1);
+            border: 1px solid #0a9fff;
+            border-radius: 8px;
+            padding: 20px;
+            height: fit-content;
+            position: sticky;
+            top: 20px;
+        }
+
+        .sidebar h3 {
+            color: #0a9fff;
+            margin-bottom: 15px;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .search-box {
+            width: 100%;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid #0a9fff;
+            border-radius: 4px;
+            color: #fff;
+            margin-bottom: 15px;
+        }
+
+        .search-box::placeholder {
+            color: #a0a0a0;
+        }
+
+        .filter-group {
+            margin-bottom: 20px;
+        }
+
+        .filter-group label {
+            display: block;
+            font-size: 12px;
+            color: #a0a0a0;
+            margin-bottom: 8px;
+        }
+
+        .filter-group select {
+            width: 100%;
+            padding: 8px;
+            background: #fff;
+            border: 1px solid #0a9fff;
+            color: #000;
+            border-radius: 4px;
+            font-weight: 500;
+        }
+
+        /* MAIN CONTENT */
+        .main {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
         }
 
         header {
             text-align: center;
-            margin-bottom: 30px;
-            border-bottom: 2px solid #0a9fff;
-            padding-bottom: 20px;
+            margin-bottom: 20px;
+            position: relative;
+            padding: 30px 0;
+            overflow: hidden;
         }
 
-        h1 {
+        #canvas3d {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 200px;
+            z-index: 0;
+            opacity: 0.3;
+        }
+
+        header h1 {
             font-size: 2.5em;
             color: #0a9fff;
             text-shadow: 0 0 10px rgba(10, 159, 255, 0.5);
             margin-bottom: 10px;
+            position: relative;
+            z-index: 1;
         }
 
-        .upload-section {
-            background: rgba(10, 159, 255, 0.1);
-            padding: 20px;
-            border-radius: 8px;
-            margin-bottom: 30px;
+        header p {
+            position: relative;
+            z-index: 1;
+        }
+
+        /* STATS GLOBALES */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.05);
             border: 1px solid #0a9fff;
+            border-radius: 8px;
+            padding: 20px;
             text-align: center;
         }
 
+        .stat-card h4 {
+            font-size: 12px;
+            color: #a0a0a0;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+            letter-spacing: 1px;
+        }
+
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #0a9fff;
+        }
+
+        /* CHARTS */
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 20px;
+        }
+
+        .chart-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid #0a9fff;
+            border-radius: 8px;
+            padding: 20px;
+        }
+
+        .chart-card h3 {
+            color: #0a9fff;
+            margin-bottom: 15px;
+            font-size: 14px;
+        }
+
+        /* CHAMPIONS GRID */
+        .champions-section {
+            margin-top: 30px;
+        }
+
+        .champions-section h2 {
+            color: #0a9fff;
+            margin-bottom: 20px;
+            font-size: 18px;
+        }
+
+        .champions-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .champion-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid #0a9fff;
+            border-radius: 8px;
+            overflow: hidden;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .champion-card:hover {
+            transform: translateY(-5px);
+            background: rgba(10, 159, 255, 0.15);
+            box-shadow: 0 5px 20px rgba(10, 159, 255, 0.3);
+        }
+
+        .champion-image {
+            width: 100%;
+            height: 200px;
+            background: rgba(255, 255, 255, 0.05);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .champion-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .champion-info {
+            padding: 15px;
+        }
+
+        .champion-name {
+            font-weight: bold;
+            font-size: 14px;
+            margin-bottom: 10px;
+            color: #0a9fff;
+        }
+
+        .champion-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 10px;
+            font-size: 12px;
+        }
+
+        .stat {
+            text-align: center;
+        }
+
+        .stat-label {
+            color: #a0a0a0;
+            font-size: 10px;
+            text-transform: uppercase;
+        }
+
+        .stat-val {
+            color: #fff;
+            font-weight: bold;
+            margin-top: 3px;
+        }
+
+        .stat-val.win {
+            color: #00d166;
+        }
+
+        .stat-val.loss {
+            color: #ff1744;
+        }
+
+        /* UPLOAD */
+        .upload-section {
+            background: rgba(10, 159, 255, 0.1);
+            border: 1px solid #0a9fff;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
         input[type="file"] {
-            padding: 10px;
-            background: rgba(255, 255, 255, 0.1);
+            padding: 8px;
+            background: rgba(255, 255, 255, 0.05);
             border: 1px solid #0a9fff;
             border-radius: 4px;
             color: #fff;
@@ -59,7 +281,7 @@
         }
 
         button {
-            padding: 10px 20px;
+            padding: 8px 15px;
             background: #0a9fff;
             color: #fff;
             border: none;
@@ -72,245 +294,401 @@
         button:hover {
             background: #0080cc;
             transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(10, 159, 255, 0.3);
         }
 
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-
-        .stat-card {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid #0a9fff;
-            border-radius: 8px;
-            padding: 20px;
-            text-align: center;
-            transition: all 0.3s;
-        }
-
-        .stat-card:hover {
-            background: rgba(10, 159, 255, 0.1);
-            transform: translateY(-5px);
-        }
-
-        .stat-value {
-            font-size: 2.5em;
-            font-weight: bold;
-            color: #0a9fff;
-            margin: 10px 0;
-        }
-
-        .stat-label {
-            font-size: 0.9em;
-            color: #a0a0a0;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        .charts-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-            gap: 30px;
-            margin-bottom: 30px;
-        }
-
-        .chart-container {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid #0a9fff;
-            border-radius: 8px;
-            padding: 20px;
-            position: relative;
-        }
-
-        .chart-title {
-            font-size: 1.2em;
-            font-weight: bold;
+        .message {
+            padding: 12px;
+            border-radius: 4px;
             margin-bottom: 15px;
-            color: #0a9fff;
+            font-size: 14px;
         }
 
-        .match-history {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid #0a9fff;
-            border-radius: 8px;
-            padding: 20px;
-            margin-top: 30px;
-        }
-
-        .match-entry {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 15px;
-            background: rgba(255, 255, 255, 0.02);
-            border-left: 4px solid transparent;
-            margin-bottom: 10px;
-            border-radius: 4px;
-            transition: all 0.3s;
-        }
-
-        .match-entry:hover {
-            background: rgba(10, 159, 255, 0.1);
-        }
-
-        .match-entry.win {
-            border-left-color: #00d166;
-            background: rgba(0, 209, 102, 0.05);
-        }
-
-        .match-entry.loss {
-            border-left-color: #ff1744;
-            background: rgba(255, 23, 68, 0.05);
-        }
-
-        .match-champion {
-            font-weight: bold;
-            color: #0a9fff;
-            min-width: 120px;
-        }
-
-        .match-kda {
-            color: #a0a0a0;
-            min-width: 100px;
-        }
-
-        .match-result {
-            font-weight: bold;
-            padding: 5px 15px;
-            border-radius: 4px;
-            min-width: 80px;
-            text-align: center;
-        }
-
-        .match-result.win {
-            background: rgba(0, 209, 102, 0.3);
-            color: #00d166;
-        }
-
-        .match-result.loss {
-            background: rgba(255, 23, 68, 0.3);
-            color: #ff1744;
-        }
-
-        .champion-stats {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 20px;
-            margin-top: 20px;
-        }
-
-        .champion-card {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid #0a9fff;
-            border-radius: 8px;
-            padding: 15px;
-            text-align: center;
-        }
-
-        .champion-name {
-            font-size: 1.3em;
-            font-weight: bold;
-            color: #0a9fff;
-            margin-bottom: 10px;
-        }
-
-        .error {
+        .message.error {
             background: rgba(255, 23, 68, 0.1);
             border: 1px solid #ff1744;
             color: #ff6b6b;
-            padding: 15px;
-            border-radius: 4px;
-            margin-bottom: 20px;
         }
 
-        .success {
+        .message.success {
             background: rgba(0, 209, 102, 0.1);
             border: 1px solid #00d166;
             color: #69f0ae;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        /* MATCH HISTORY CARDS */
+        .matches-container {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            max-height: 800px;
+            overflow-y: auto;
+            padding-right: 10px;
+        }
+
+        .match-card {
+            background: linear-gradient(135deg, rgba(10, 159, 255, 0.1) 0%, rgba(10, 159, 255, 0.05) 100%);
+            border: 1px solid rgba(10, 159, 255, 0.3);
+            border-radius: 8px;
             padding: 15px;
+            display: grid;
+            grid-template-columns: auto 1fr auto auto auto;
+            gap: 20px;
+            align-items: center;
+            transition: all 0.3s;
+        }
+
+        .match-card:hover {
+            background: linear-gradient(135deg, rgba(10, 159, 255, 0.15) 0%, rgba(10, 159, 255, 0.1) 100%);
+            border-color: rgba(10, 159, 255, 0.6);
+            box-shadow: 0 5px 20px rgba(10, 159, 255, 0.2);
+        }
+
+        .match-card.win {
+            border-left: 5px solid #00d166;
+        }
+
+        .match-card.loss {
+            border-left: 5px solid #ff1744;
+        }
+
+        .match-result {
+            text-align: center;
+            min-width: 80px;
+        }
+
+        .match-result-text {
+            font-size: 14px;
+            font-weight: bold;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+        }
+
+        .match-card.win .match-result-text {
+            color: #00d166;
+        }
+
+        .match-card.loss .match-result-text {
+            color: #ff1744;
+        }
+
+        .match-kda-text {
+            font-size: 12px;
+            color: #a0a0a0;
+        }
+
+        .match-middle {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr 1fr;
+            gap: 15px;
+        }
+
+        .match-stat {
+            text-align: center;
+        }
+
+        .match-stat-label {
+            font-size: 11px;
+            color: #a0a0a0;
+            text-transform: uppercase;
+        }
+
+        .match-stat-value {
+            font-size: 14px;
+            font-weight: bold;
+            color: #0a9fff;
+            margin-top: 3px;
+        }
+
+        .match-items {
+            display: flex;
+            gap: 5px;
+            align-items: center;
+        }
+
+        .match-item-img {
+            width: 32px;
+            height: 32px;
             border-radius: 4px;
-            margin-bottom: 20px;
+            border: 1px solid #0a9fff;
+            background: rgba(255, 255, 255, 0.05);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .match-item-img img {
+            width: 30px;
+            height: 30px;
+            border-radius: 3px;
+        }
+
+        .match-runes {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .match-rune-img {
+            width: 28px;
+            height: 28px;
+            border-radius: 4px;
+            border: 1px solid #0a9fff;
+            background: rgba(255, 255, 255, 0.05);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .match-rune-img img {
+            width: 26px;
+            height: 26px;
+            border-radius: 3px;
+        }
+
+        .match-champ-section {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            min-width: 200px;
+        }
+
+        .match-champ-img {
+            width: 50px;
+            height: 50px;
+            border-radius: 6px;
+            border: 2px solid #0a9fff;
+            overflow: hidden;
+        }
+
+        .match-champ-img img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .match-champ-info h4 {
+            color: #0a9fff;
+            font-weight: bold;
+            margin-bottom: 3px;
+        }
+
+        .match-champ-info p {
+            font-size: 11px;
+            color: #a0a0a0;
+        }
+
+        .matches-container::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .matches-container::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+        }
+
+        .matches-container::-webkit-scrollbar-thumb {
+            background: rgba(10, 159, 255, 0.3);
+            border-radius: 4px;
+        }
+
+        .matches-container::-webkit-scrollbar-thumb:hover {
+            background: rgba(10, 159, 255, 0.5);
+        }
+
+        @media (max-width: 1024px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+
+            .sidebar {
+                position: static;
+            }
+
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <header>
-            <h1>⚔️ League of Legends Analytics</h1>
-            <p>Suivi détaillé de tes performances</p>
-        </header>
+        <!-- SIDEBAR -->
+        <aside class="sidebar">
+            <div id="messageContainer"></div>
 
-        <div class="upload-section">
-            <input type="file" id="fileInput" accept=".json" placeholder="Sélectionne lol_stats.json">
-            <button onclick="loadFile()">Charger les données</button>
-            <button onclick="downloadTemplate()" style="background: #666;">📥 Télécharger template</button>
-        </div>
+            <div class="upload-section" id="uploadSection" style="display: none;">
+                <input type="file" id="fileInput" accept=".json" placeholder="Sélectionne lol_stats.json">
+                <button onclick="loadFileManual()">Charger</button>
+            </div>
 
-        <div id="messageContainer"></div>
+            <h3>🔍 Filtrer</h3>
+            <input type="text" id="searchChampion" class="search-box" placeholder="Cherche un champion...">
 
-        <div id="statsContainer" style="display: none;">
-            <!-- Stats générales -->
+            <div class="filter-group">
+                <label>Tri par</label>
+                <select id="sortBy" onchange="applySorting()">
+                    <option value="games">Nombre de jeux</option>
+                    <option value="wr">Win Rate</option>
+                    <option value="kda">KDA</option>
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label>Min. games</label>
+                <select id="minGames" onchange="applyFilters()">
+                    <option value="1">All</option>
+                    <option value="5">5+ games</option>
+                    <option value="10">10+ games</option>
+                    <option value="20">20+ games</option>
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label>Game Mode</label>
+                <select id="queueFilter" onchange="applyFilters()">
+                    <option value="0">All Modes</option>
+                    <option value="420">Ranked Solo</option>
+                    <option value="440">Ranked Flex</option>
+                    <option value="400">Normal Draft</option>
+                    <option value="430">Normal Blind</option>
+                    <option value="450">ARAM</option>
+                </select>
+            </div>
+        </aside>
+
+        <!-- MAIN CONTENT -->
+        <main class="main">
+            <header>
+                <canvas id="canvas3d"></canvas>
+                <h1>⚔️ League of Legends Analytics</h1>
+                <p>Ton suivi détaillé de performances</p>
+            </header>
+
+            <!-- STATS GLOBALES -->
             <div class="stats-grid">
                 <div class="stat-card">
-                    <div class="stat-label">Total Matchs</div>
+                    <h4>Total Matchs</h4>
                     <div class="stat-value" id="totalGames">0</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-label">Win Rate</div>
+                    <h4>Win Rate</h4>
                     <div class="stat-value" id="winRate">0%</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-label">Kills/Deaths/Assists</div>
-                    <div class="stat-value" id="kda">0.0</div>
+                    <h4>KDA Moyen</h4>
+                    <div class="stat-value" id="avgKDA">0.0</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-label">CS Moyen</div>
+                    <h4>CS Moyen</h4>
                     <div class="stat-value" id="avgCS">0</div>
                 </div>
             </div>
 
-            <!-- Graphiques -->
+            <!-- CHARTS -->
             <div class="charts-grid">
-                <div class="chart-container">
-                    <div class="chart-title">📊 Win Rate Evolution</div>
+                <div class="chart-card">
+                    <h3>📈 Win Rate Evolution</h3>
                     <canvas id="wrChart"></canvas>
                 </div>
-                <div class="chart-container">
-                    <div class="chart-title">🎯 Champions (Win Rate)</div>
+                <div class="chart-card">
+                    <h3>🎯 Top Champions (WR)</h3>
                     <canvas id="champChart"></canvas>
                 </div>
-                <div class="chart-container">
-                    <div class="chart-title">💀 KDA par Champion</div>
-                    <canvas id="kdaChart"></canvas>
-                </div>
-                <div class="chart-container">
-                    <div class="chart-title">🏆 Jeux par Champion</div>
-                    <canvas id="gamesChart"></canvas>
-                </div>
             </div>
 
-            <!-- Stats par champion -->
-            <div class="match-history">
-                <h2>👨‍🎮 Statistiques par Champion</h2>
-                <div class="champion-stats" id="championStats"></div>
+            <!-- MATCH HISTORY -->
+            <div class="champions-section">
+                <h2>📜 Recent Matches (Top 20)</h2>
+                <div id="matchHistory"></div>
             </div>
 
-            <!-- Historique des matchs -->
-            <div class="match-history">
-                <h2>📜 Historique des Matchs</h2>
-                <div id="matchList"></div>
+            <!-- CHAMPIONS -->
+            <div class="champions-section">
+                <h2>👨‍🎮 Your Champions</h2>
+                <div class="champions-grid" id="championsGrid"></div>
             </div>
-        </div>
+        </main>
     </div>
 
     <script>
+        // THREE.JS 3D BACKGROUND
+        function initThreeJS() {
+            const canvas = document.getElementById('canvas3d');
+            if (!canvas) return;
+
+            const scene = new THREE.Scene();
+            const camera = new THREE.PerspectiveCamera(75, canvas.clientWidth / canvas.clientHeight, 0.1, 1000);
+            const renderer = new THREE.WebGLRenderer({ canvas, alpha: true });
+
+            renderer.setSize(canvas.clientWidth, canvas.clientHeight);
+            renderer.setClearColor(0x000000, 0);
+            camera.position.z = 3;
+
+            // Crée des cubes animés
+            const geometry = new THREE.BoxGeometry(0.5, 0.5, 0.5);
+            const material = new THREE.MeshPhongMaterial({ color: 0x0a9fff });
+            const cubes = [];
+
+            for (let i = 0; i < 5; i++) {
+                const cube = new THREE.Mesh(geometry, material.clone());
+                cube.position.x = (Math.random() - 0.5) * 10;
+                cube.position.y = (Math.random() - 0.5) * 5;
+                cube.position.z = (Math.random() - 0.5) * 5;
+                cube.rotation.x = Math.random() * Math.PI;
+                cube.rotation.y = Math.random() * Math.PI;
+                cube.userData = {
+                    rotationX: (Math.random() - 0.5) * 0.02,
+                    rotationY: (Math.random() - 0.5) * 0.02
+                };
+                scene.add(cube);
+                cubes.push(cube);
+            }
+
+            // Ajoute une lumière
+            const light = new THREE.DirectionalLight(0xffffff, 0.5);
+            light.position.set(5, 5, 5);
+            scene.add(light);
+
+            // Animation
+            function animate() {
+                requestAnimationFrame(animate);
+
+                cubes.forEach(cube => {
+                    cube.rotation.x += cube.userData.rotationX;
+                    cube.rotation.y += cube.userData.rotationY;
+                    cube.position.y += Math.sin(Date.now() * 0.001 + cube.userData.rotationX) * 0.002;
+                });
+
+                renderer.render(scene, camera);
+            }
+
+            animate();
+
+            // Resize handler
+            window.addEventListener('resize', () => {
+                const width = canvas.clientWidth;
+                const height = canvas.clientHeight;
+                camera.aspect = width / height;
+                camera.updateProjectionMatrix();
+                renderer.setSize(width, height);
+            });
+        }
+
         let chartInstances = {};
         let allData = null;
+        let filteredChampions = {};
 
-        function loadFile() {
+        function showMessage(msg, type) {
+            const container = document.getElementById('messageContainer');
+            container.innerHTML = `<div class="message ${type}">${msg}</div>`;
+            setTimeout(() => container.innerHTML = '', 3000);
+        }
+
+        function loadFileManual() {
             const fileInput = document.getElementById('fileInput');
             const file = fileInput.files[0];
 
@@ -324,49 +702,36 @@
                 try {
                     allData = JSON.parse(e.target.result);
                     renderDashboard();
-                    showMessage('✓ Données chargées avec succès!', 'success');
+                    showMessage('✓ Données chargées!', 'success');
                 } catch (error) {
-                    showMessage('Erreur: Fichier JSON invalide', 'error');
+                    showMessage('Erreur: JSON invalide', 'error');
                 }
             };
             reader.readAsText(file);
         }
 
         function loadFileAuto() {
-            // Essaie de charger lol_stats.json automatiquement
             fetch('lol_stats.json')
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Fichier lol_stats.json non trouvé');
-                    }
-                    return response.json();
-                })
+                .then(response => response.json())
                 .then(data => {
                     allData = data;
                     renderDashboard();
                     showMessage('✓ Données chargées automatiquement!', 'success');
                 })
-                .catch(error => {
-                    console.log('Auto-load failed:', error);
-                    // Ne pas afficher d'erreur, laisser l'utilisateur charger manuellement
-                });
+                .catch(error => console.log('Auto-load échoué'));
         }
-
-        // Charge automatiquement au démarrage
-        window.addEventListener('load', loadFileAuto);
 
         function renderDashboard() {
             if (!allData || !allData.matches || allData.matches.length === 0) {
-                showMessage('Aucune donnée de match trouvée', 'error');
+                showMessage('No data found', 'error');
                 return;
             }
 
-            document.getElementById('statsContainer').style.display = 'block';
-
             updateStats();
             updateCharts();
-            updateChampionStats();
-            updateMatchHistory();
+            updateChampionsList();
+            renderMatchHistory();
+            applyFilters();
         }
 
         function updateStats() {
@@ -389,12 +754,11 @@
 
             document.getElementById('totalGames').textContent = totalGames;
             document.getElementById('winRate').textContent = winRate + '%';
-            document.getElementById('kda').textContent = kda;
+            document.getElementById('avgKDA').textContent = kda;
             document.getElementById('avgCS').textContent = avgCS;
         }
 
         function updateCharts() {
-            // Win Rate Evolution
             const matches = allData.matches.slice().reverse();
             let cumulativeWins = 0;
             const wrLabels = [];
@@ -406,7 +770,7 @@
                 wrData.push((cumulativeWins / (idx + 1) * 100).toFixed(1));
             });
 
-            createOrUpdateChart('wrChart', {
+            createChart('wrChart', {
                 type: 'line',
                 data: {
                     labels: wrLabels,
@@ -421,32 +785,19 @@
                 },
                 options: {
                     responsive: true,
-                    plugins: {
-                        legend: { display: true, labels: { color: '#fff' } }
-                    },
+                    plugins: { legend: { labels: { color: '#fff' } } },
                     scales: {
-                        y: {
-                            beginAtZero: true,
-                            max: 100,
-                            ticks: { color: '#a0a0a0' },
-                            grid: { color: 'rgba(255, 255, 255, 0.1)' }
-                        },
-                        x: {
-                            ticks: { color: '#a0a0a0' },
-                            grid: { color: 'rgba(255, 255, 255, 0.1)' }
-                        }
+                        y: { beginAtZero: true, max: 100, ticks: { color: '#a0a0a0' }, grid: { color: 'rgba(255, 255, 255, 0.1)' } },
+                        x: { ticks: { color: '#a0a0a0' }, grid: { color: 'rgba(255, 255, 255, 0.1)' } }
                     }
                 }
             });
 
-            // Champion Win Rate
-            const champStats = Object.entries(allData.champion_stats);
+            const champStats = Object.entries(allData.champion_stats).sort((a, b) => b[1].games - a[1].games);
             const champLabels = champStats.map(([name]) => name).slice(0, 10);
-            const champWRs = champStats.map(([_, stats]) =>
-                (stats.wins / stats.games * 100).toFixed(1)
-            ).slice(0, 10);
+            const champWRs = champStats.map(([_, stats]) => (stats.wins / stats.games * 100).toFixed(1)).slice(0, 10);
 
-            createOrUpdateChart('champChart', {
+            createChart('champChart', {
                 type: 'bar',
                 data: {
                     labels: champLabels,
@@ -459,81 +810,210 @@
                 options: {
                     responsive: true,
                     indexAxis: 'y',
-                    plugins: {
-                        legend: { display: false }
-                    },
+                    plugins: { legend: { display: false } },
                     scales: {
-                        x: {
-                            beginAtZero: true,
-                            max: 100,
-                            ticks: { color: '#a0a0a0' },
-                            grid: { color: 'rgba(255, 255, 255, 0.1)' }
-                        },
-                        y: {
-                            ticks: { color: '#a0a0a0' }
-                        }
-                    }
-                }
-            });
-
-            // KDA Chart
-            const kdaData = champStats.map(([_, stats]) =>
-                stats.deaths > 0 ? ((stats.kills + stats.assists) / stats.deaths).toFixed(2) : stats.kills
-            ).slice(0, 10);
-
-            createOrUpdateChart('kdaChart', {
-                type: 'bar',
-                data: {
-                    labels: champLabels,
-                    datasets: [{
-                        label: 'KDA',
-                        data: kdaData,
-                        backgroundColor: '#0a9fff'
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        legend: { display: false }
-                    },
-                    scales: {
-                        y: {
-                            ticks: { color: '#a0a0a0' },
-                            grid: { color: 'rgba(255, 255, 255, 0.1)' }
-                        },
-                        x: {
-                            ticks: { color: '#a0a0a0' }
-                        }
-                    }
-                }
-            });
-
-            // Games Count
-            const gamesData = champStats.map(([_, stats]) => stats.games).slice(0, 10);
-
-            createOrUpdateChart('gamesChart', {
-                type: 'doughnut',
-                data: {
-                    labels: champLabels,
-                    datasets: [{
-                        data: gamesData,
-                        backgroundColor: [
-                            '#0a9fff', '#00d166', '#ff1744', '#ffc400',
-                            '#7c4dff', '#00e5ff', '#ff6b6b', '#69f0ae',
-                            '#ffa726', '#ef5350'
-                        ]
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        legend: { labels: { color: '#fff' } }
+                        x: { beginAtZero: true, max: 100, ticks: { color: '#a0a0a0' }, grid: { color: 'rgba(255, 255, 255, 0.1)' } },
+                        y: { ticks: { color: '#a0a0a0' } }
                     }
                 }
             });
         }
 
-        function createOrUpdateChart(canvasId, config) {
+        function updateChampionsList() {
+            const queueId = parseInt(document.getElementById('queueFilter').value);
+            filteredChampions = {};
+
+            // Si filtre queue, recalculer les stats par champion pour ce mode
+            if (queueId !== 0) {
+                const filteredMatches = allData.matches.filter(m => m.queue_id === queueId);
+
+                filteredMatches.forEach(m => {
+                    if (!filteredChampions[m.champion]) {
+                        filteredChampions[m.champion] = {
+                            games: 0, wins: 0, losses: 0,
+                            kills: 0, deaths: 0, assists: 0,
+                            total_cs: 0, total_gold: 0, total_damage: 0
+                        };
+                    }
+                    const stats = filteredChampions[m.champion];
+                    stats.games += 1;
+                    stats.wins += m.win ? 1 : 0;
+                    stats.losses += m.win ? 0 : 1;
+                    stats.kills += m.kills;
+                    stats.deaths += m.deaths;
+                    stats.assists += m.assists;
+                    stats.total_cs += m.cs;
+                    stats.total_gold += m.gold;
+                    stats.total_damage += m.damage;
+                });
+            } else {
+                Object.entries(allData.champion_stats).forEach(([champion, stats]) => {
+                    filteredChampions[champion] = stats;
+                });
+            }
+
+            renderChampions();
+            renderMatchHistory();
+        }
+
+        function getItemImage(itemId) {
+            if (itemId === 0) return '';
+            return `https://ddragon.leagueoflegends.com/cdn/14.1.1/img/item/${itemId}.png`;
+        }
+
+        function getRuneImage(runeId) {
+            if (runeId === 0) return '';
+            return `https://ddragon.leagueoflegends.com/cdn/img/perk-images/Styles/${runeId}.png`;
+        }
+
+        function renderMatchHistory() {
+            const queueId = parseInt(document.getElementById('queueFilter').value);
+            const container = document.getElementById('matchHistory');
+
+            let matches = allData.matches.slice().reverse();
+
+            if (queueId !== 0) {
+                matches = matches.filter(m => m.queue_id === queueId);
+            }
+
+            const html = `
+                <div class="matches-container">
+                    ${matches.slice(0, 20).map(m => {
+                        const champImg = `https://ddragon.leagueoflegends.com/cdn/img/champion/tiles/${m.champion}_0.jpg`;
+                        const itemsHtml = m.items
+                            .filter(id => id !== 0)
+                            .map(id => `
+                                <div class="match-item-img">
+                                    <img src="${getItemImage(id)}" alt="item" onerror="this.style.display='none'">
+                                </div>
+                            `).join('');
+
+                        const runesHtml = (m.primary_rune || m.secondary_rune) ? `
+                            <div class="match-runes">
+                                ${m.primary_rune ? `<div class="match-rune-img"><img src="${getRuneImage(m.primary_rune)}" alt="rune" onerror="this.style.display='none'"></div>` : ''}
+                                ${m.secondary_rune ? `<div class="match-rune-img"><img src="${getRuneImage(m.secondary_rune)}" alt="rune" onerror="this.style.display='none'"></div>` : ''}
+                            </div>
+                        ` : '';
+
+                        return `
+                            <div class="match-card ${m.win ? 'win' : 'loss'}">
+                                <div class="match-result">
+                                    <div class="match-result-text">${m.win ? '✓ WIN' : '✗ LOSS'}</div>
+                                    <div class="match-kda-text">${m.kills}/${m.deaths}/${m.assists}</div>
+                                </div>
+
+                                <div class="match-champ-section">
+                                    <div class="match-champ-img">
+                                        <img src="${champImg}" alt="${m.champion}">
+                                    </div>
+                                    <div class="match-champ-info">
+                                        <h4>${m.champion}</h4>
+                                        <p>${m.role} • ${new Date(m.timestamp).toLocaleDateString()}</p>
+                                    </div>
+                                </div>
+
+                                <div class="match-middle">
+                                    <div class="match-stat">
+                                        <div class="match-stat-label">CS</div>
+                                        <div class="match-stat-value">${m.cs}</div>
+                                    </div>
+                                    <div class="match-stat">
+                                        <div class="match-stat-label">Gold</div>
+                                        <div class="match-stat-value">${(m.gold / 1000).toFixed(1)}k</div>
+                                    </div>
+                                    <div class="match-stat">
+                                        <div class="match-stat-label">Damage</div>
+                                        <div class="match-stat-value">${(m.damage / 1000).toFixed(1)}k</div>
+                                    </div>
+                                    <div class="match-stat">
+                                        <div class="match-stat-label">Duration</div>
+                                        <div class="match-stat-value">${Math.floor(m.duration_seconds / 60)}m</div>
+                                    </div>
+                                </div>
+
+                                <div class="match-items">
+                                    ${itemsHtml}
+                                </div>
+
+                                ${runesHtml}
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            `;
+
+            container.innerHTML = html;
+        }
+
+        function renderChampions() {
+            const grid = document.getElementById('championsGrid');
+            const searchTerm = document.getElementById('searchChampion').value.toLowerCase();
+            const minGames = parseInt(document.getElementById('minGames').value);
+            const queueId = parseInt(document.getElementById('queueFilter').value);
+            const sortBy = document.getElementById('sortBy').value;
+
+            let champArray = Object.entries(filteredChampions).filter(([name, stats]) => {
+                return name.toLowerCase().includes(searchTerm) && stats.games >= minGames;
+            });
+
+            // Tri
+            if (sortBy === 'wr') {
+                champArray.sort((a, b) => (b[1].wins / b[1].games) - (a[1].wins / a[1].games));
+            } else if (sortBy === 'kda') {
+                champArray.sort((a, b) => {
+                    const kdaA = (a[1].kills + a[1].assists) / Math.max(a[1].deaths, 1);
+                    const kdaB = (b[1].kills + b[1].assists) / Math.max(b[1].deaths, 1);
+                    return kdaB - kdaA;
+                });
+            } else {
+                champArray.sort((a, b) => b[1].games - a[1].games);
+            }
+
+            grid.innerHTML = champArray.map(([champion, stats]) => {
+                const wr = (stats.wins / stats.games * 100).toFixed(1);
+                const kda = stats.deaths > 0 ? ((stats.kills + stats.assists) / stats.deaths).toFixed(2) : stats.kills;
+                const champImg = `https://ddragon.leagueoflegends.com/cdn/img/champion/tiles/${champion}_0.jpg`;
+
+                return `
+                    <div class="champion-card">
+                        <div class="champion-image">
+                            <img src="${champImg}" alt="${champion}" onerror="this.src='data:image/svg+xml,%3Csvg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%220%200%20100%20100%22%3E%3Crect%20fill=%22%23333%22%20width=%22100%22%20height=%22100%22/%3E%3Ctext%20fill=%22%23999%22%20x=%2250%22%20y=%2250%22%20text-anchor=%22middle%22%20dominant-baseline=%22middle%22%3E${champion}%3C/text%3E%3C/svg%3E'">
+                        </div>
+                        <div class="champion-info">
+                            <div class="champion-name">${champion}</div>
+                            <div class="champion-stats">
+                                <div class="stat">
+                                    <div class="stat-label">Games</div>
+                                    <div class="stat-val">${stats.games}</div>
+                                </div>
+                                <div class="stat">
+                                    <div class="stat-label">WR</div>
+                                    <div class="stat-val ${wr >= 50 ? 'win' : 'loss'}">${wr}%</div>
+                                </div>
+                                <div class="stat">
+                                    <div class="stat-label">KDA</div>
+                                    <div class="stat-val">${kda}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function applyFilters() {
+            updateChampionsList();
+        }
+
+        function applySorting() {
+            renderChampions();
+        }
+
+        function showUploadSection() {
+            document.getElementById('uploadSection').style.display = 'block';
+        }
+
+        function createChart(canvasId, config) {
             const ctx = document.getElementById(canvasId).getContext('2d');
             if (chartInstances[canvasId]) {
                 chartInstances[canvasId].destroy();
@@ -541,66 +1021,12 @@
             chartInstances[canvasId] = new Chart(ctx, config);
         }
 
-        function updateChampionStats() {
-            const champStats = Object.entries(allData.champion_stats)
-                .sort((a, b) => b[1].games - a[1].games);
+        document.getElementById('searchChampion').addEventListener('input', applyFilters);
 
-            const html = champStats.map(([champion, stats]) => {
-                const wr = (stats.wins / stats.games * 100).toFixed(1);
-                const kda = stats.deaths > 0 ? ((stats.kills + stats.assists) / stats.deaths).toFixed(2) : stats.kills;
-                const avgCS = (stats.total_cs / stats.games).toFixed(1);
-
-                return `
-                    <div class="champion-card">
-                        <div class="champion-name">${champion}</div>
-                        <p><strong>${stats.games}</strong> jeux | <strong>${wr}%</strong> WR</p>
-                        <p>KDA: <strong>${kda}</strong> | CS: <strong>${avgCS}</strong></p>
-                        <p style="color: #a0a0a0; font-size: 0.9em;">${stats.wins}W-${stats.losses}L</p>
-                    </div>
-                `;
-            }).join('');
-
-            document.getElementById('championStats').innerHTML = html;
-        }
-
-        function updateMatchHistory() {
-            const matches = allData.matches.slice().reverse();
-            const html = matches.slice(0, 50).map(m => {
-                const winClass = m.win ? 'win' : 'loss';
-                const winText = m.win ? 'WIN' : 'LOSS';
-
-                return `
-                    <div class="match-entry ${winClass}">
-                        <div class="match-champion">${m.champion}</div>
-                        <div class="match-kda">${m.kills}/${m.deaths}/${m.assists}</div>
-                        <div style="color: #a0a0a0;">${m.cs} CS</div>
-                        <div class="match-result ${winClass}">${winText}</div>
-                    </div>
-                `;
-            }).join('');
-
-            document.getElementById('matchList').innerHTML = html;
-        }
-
-        function showMessage(msg, type) {
-            const container = document.getElementById('messageContainer');
-            container.innerHTML = `<div class="${type}">${msg}</div>`;
-            setTimeout(() => container.innerHTML = '', 3000);
-        }
-
-        function downloadTemplate() {
-            const template = {
-                "player_info": {},
-                "matches": [],
-                "champion_stats": {},
-                "daily_summary": []
-            };
-            const blob = new Blob([JSON.stringify(template, null, 2)], { type: 'application/json' });
-            const a = document.createElement('a');
-            a.href = URL.createObjectURL(blob);
-            a.download = 'lol_stats.json';
-            a.click();
-        }
+        window.addEventListener('load', () => {
+            initThreeJS();
+            loadFileAuto();
+        });
     </script>
 </body>
 </html>

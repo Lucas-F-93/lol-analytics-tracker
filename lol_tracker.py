@@ -35,7 +35,20 @@ class LoLTracker:
                 "player_info": {},
                 "matches": [],
                 "champion_stats": {},
-                "daily_summary": []
+                "daily_summary": [],
+                "fetch_info": {
+                    "last_update": None,
+                    "total_matches_fetched": 0,
+                    "fetch_index": 0
+                }
+            }
+
+        # Assure que fetch_info existe (pour les anciennes données)
+        if "fetch_info" not in self.data:
+            self.data["fetch_info"] = {
+                "last_update": None,
+                "total_matches_fetched": len(self.data.get("matches", [])),
+                "fetch_index": len(self.data.get("matches", []))
             }
 
     def save_data(self):
@@ -138,6 +151,8 @@ class LoLTracker:
                     'gold': player_stats['goldEarned'],
                     'damage': player_stats['totalDamageDealtToChampions'],
                     'items': [player_stats.get(f'item{i}', 0) for i in range(7)],
+                    'primary_rune': player_stats.get('perks', {}).get('styles', [{}])[0].get('selections', [{}])[0].get('perk', 0),
+                    'secondary_rune': player_stats.get('perks', {}).get('styles', [{}])[1].get('id', 0) if len(player_stats.get('perks', {}).get('styles', [])) > 1 else 0,
                     'lane_opponent': player_stats.get('opposingTeamSize', 0)
                 }
 
@@ -201,8 +216,8 @@ class LoLTracker:
             print(f"  {champion}: {stats['games']}G | WR {winrate:.1f}% | KDA {kda:.2f}")
 
     def sync_all(self):
-        """Synchronise toutes les données"""
-        print("🔄 Synchronisation LoL Stats...")
+        """Synchronise toutes les données - accumulation progressive"""
+        print("🔄 Synchronisation LoL Stats (accumulation progressive)...")
 
         # Récupère le PUUID
         puuid = self.get_player_puuid()
@@ -212,16 +227,53 @@ class LoLTracker:
 
         print(f"✓ PUUID trouvé: {puuid}")
 
-        # Récupère l'historique des matches
-        match_ids = self.get_match_history(puuid, start=0, count=20)
-        if match_ids:
-            print(f"✓ {len(match_ids)} matches trouvés")
-            self.process_matches(match_ids, puuid)
+        # Récupère le checkpoint
+        fetch_index = self.data.get("fetch_info", {}).get("fetch_index", 0)
+        print(f"📍 Checkpoint: {fetch_index} (on continue à partir du match #{fetch_index})")
+
+        # Fetche par blocs de 20 matchs
+        all_new_matches = []
+        current_start = fetch_index
+        batch_size = 20
+        max_iterations = 5  # Max 100 matchs par exécution
+        matches_added = 0
+
+        for iteration in range(max_iterations):
+            match_ids = self.get_match_history(puuid, start=current_start, count=batch_size)
+
+            if not match_ids:
+                print(f"✓ Fin de l'historique atteinte (ou erreur API)")
+                break
+
+            # Cherche si on a déjà certains matchs
+            new_ids = [m for m in match_ids if not any(x['match_id'] == m for x in self.data['matches'])]
+
+            if not new_ids:
+                print(f"✓ Tous les matchs dans ce batch sont déjà connus, arrêt")
+                break
+
+            print(f"  📥 Batch {iteration + 1}: {len(new_ids)} nouveaux matchs sur {len(match_ids)}")
+            all_new_matches.extend(new_ids)
+            matches_added += len(new_ids)
+            current_start += batch_size
+
+        # Traite tous les nouveaux matchs
+        if all_new_matches:
+            print(f"\n✓ {matches_added} nouveaux matchs à traiter")
+            self.process_matches(all_new_matches, puuid)
+        else:
+            print("✓ Aucun nouveau match trouvé")
+
+        # Met à jour le checkpoint
+        self.data["fetch_info"]["last_update"] = datetime.now().isoformat()
+        self.data["fetch_info"]["total_matches_fetched"] = len(self.data['matches'])
+        self.data["fetch_info"]["fetch_index"] = current_start
 
         # Sauvegarde les données
         self.save_data()
         self.generate_summary()
 
+        print(f"\n✓ Checkpoint mis à jour: index={current_start}, total={len(self.data['matches'])} matchs")
         return True
 
 if __name__ == "__main__":
